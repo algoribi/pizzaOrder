@@ -13,14 +13,14 @@ function finishOrder() {
     rl.close();
 }
 
-async function pizzaOrder<T>(myRestaurantMenu : MenuMap) {
+async function pizzaOrder(myRestaurantMenu : MenuMap) {
     myRestaurantMenu.printMenu();
-    const userOrderMenus : T = [];
+    const userOrderMenus : any[] = [];
 
     console.log("\n['Done'을 입력할 때까지 주문을 받습니다.\n메뉴(이름 혹은 상품 코드)를 입력해 주세요.]");
 
     while(true) {
-        const userInput : T = await question("* : ");
+        const userInput : any = await question("* : ");
         
         if (myRestaurantMenu.hasNameKey(userInput)) {
             userOrderMenus.push(myRestaurantMenu.getNameKey(userInput));
