@@ -49,8 +49,8 @@ async function pizzaOrder() {
 
 function printMenu() {
     console.log("---------- Menu ----------");
-    console.log("[pizza]");
     
+    console.log("[pizza]");
     for (let key in menus.pizzaName) {
         console.log(`* ${key}(${menus.pizzaName[key].first}) : ${menus.pizzaName[key].second}`);
     }
