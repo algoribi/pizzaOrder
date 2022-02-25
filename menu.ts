@@ -1,4 +1,4 @@
-const menu : { [key : string] : { [key: string] : { first : string, second : number } } } = {
+const menus : { [key : string] : { [key: string] : { first : string, second : number } } } = {
     pizzaName :  {
         "갈릭버터쉬림프" : {first : "10001", second : 29900},
         "수퍼슈프림" : {first : "10002", second : 28900},
@@ -38,5 +38,5 @@ const menu : { [key : string] : { [key: string] : { first : string, second : num
 }
 
 export {
-    menu
+    menus
 }

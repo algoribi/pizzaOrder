@@ -1,6 +1,6 @@
 import * as readline from "readline";
 import * as utils from "util";
-import { menu } from './menu';
+import { menus } from './menu';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -51,21 +51,21 @@ function printMenu() {
     console.log("---------- Menu ----------");
     console.log("[pizza]");
     
-    for (let key in menu.pizzaName) {
-        console.log(`* ${key}(${menu.pizzaName[key].first}) : ${menu.pizzaName[key].second}`);
+    for (let key in menus.pizzaName) {
+        console.log(`* ${key}(${menus.pizzaName[key].first}) : ${menus.pizzaName[key].second}`);
     }
     console.log("[drink]");
-    for (let key in menu.drinkName) {
-        console.log(`* ${key}(${menu.drinkName[key].first}) : ${menu.drinkName[key].second}`);
+    for (let key in menus.drinkName) {
+        console.log(`* ${key}(${menus.drinkName[key].first}) : ${menus.drinkName[key].second}`);
     }
 }
 
 function cheakUserInput(userInput : string) {
-    for (let key in menu) {
-        if (menu[key][userInput] !== undefined && /Name/.test(key)) {
-            return {name : userInput, productCode : menu[key][userInput].first, price : menu[key][userInput].second, topping : []};
-        } else if (menu[key][userInput] !== undefined) {
-            return {name : menu[key][userInput].first, productCode : userInput, price : menu[key][userInput].second, topping : []};
+    for (let key in menus) {
+        if (menus[key][userInput] !== undefined && /Name/.test(key)) {
+            return {name : userInput, productCode : menus[key][userInput].first, price : menus[key][userInput].second, topping : []};
+        } else if (menus[key][userInput] !== undefined) {
+            return {name : menus[key][userInput].first, productCode : userInput, price : menus[key][userInput].second, topping : []};
         }
     }
 
