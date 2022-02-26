@@ -90,7 +90,7 @@ class Order {
             }
         }
 
-        console.log(`\n => 총 금액 : ${this.totalPrice}원`);
+        console.log(`-----------------------------\n => 총 금액 : ${this.totalPrice}원`);
         console.log("[주문을 종료합니다.]\n");
     }
 }
