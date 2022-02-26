@@ -1,8 +1,10 @@
-import { pizzaOrder, finishOrder } from './pizzaOrder';
+import {  TakeOrders } from './pizzaOrder';
 
 async function mainOrder() {
-    await pizzaOrder();
-    finishOrder();
+    const userOrder = new TakeOrders();
+    
+    await userOrder.userInput();
+    userOrder.finishOrder();
 }
 
 mainOrder();

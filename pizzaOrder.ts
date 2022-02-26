@@ -1,6 +1,5 @@
 import * as readline from "readline";
 import * as utils from "util";
-import { menus } from './menu';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -13,91 +12,178 @@ const question = utils.promisify<string, string>((query, callback) => {
 
 interface MenuType {
     name : string;
-    productCode : string;
-    price : number;
-    topping? : string[];
+    productCode : number;
+    price: number;
+    toppingsName : string[];
 }
 
-function finishOrder() {
-    rl.close();
-}
+class TakeOrders {
+    private menu = new Menu();
+    private orders = new Order();
 
-async function pizzaOrder() {
-    printMenu();
-    const userOrderMenus : MenuType[] = [];
+    constructor() {
+        this.menu.printMenu();
+        console.log("\n['Done'을 입력할 때까지 주문을 받습니다.\n메뉴(이름 혹은 상품 코드)를 입력해 주세요.]");
+    }
 
-    console.log("\n['Done'을 입력할 때까지 주문을 받습니다.\n메뉴(이름 혹은 상품 코드)를 입력해 주세요.]");
+    async userInput() {
+        const regexr = /[가-힣|0-9]{1,}/g;
 
-    while(true) {
-        const userInput : string = await question("> : ");
+        while(true) {
+            const userOrder: string = await question("> : ");
 
-        if (checkDone(userInput)) {
-            confirmOrder(userOrderMenus);
-            console.log("[주문을 종료합니다.]\n");
-            break;
-        } else {
-            const returnMenuType : MenuType = cheakUserInput(userInput);
-
-            if (!cheakUndefined(returnMenuType.name)) {
-                userOrderMenus.push(returnMenuType);
+            if (this.checkDone(userOrder)) {
+                break;
             } else {
-                inputGuidePrint(userInput);
+                let reg = userOrder.match(regexr);
+                if (reg === null) {
+                    this.inputGuidePrint();
+                } else {
+                    const menuData: MenuType = this.menu.findMenuType(reg);
+                    if (!this.checkFalse(menuData.name)) {
+                        this.orders.requestOrder(menuData);
+                    } else {
+                        this.inputGuidePrint();
+                    }
+                }
             }
         }
     }
+
+    inputGuidePrint() {
+        console.log(`[올바른 메뉴를 입력했는지 확인해 주세요!]`);
+        console.log("* 메뉴는 상품명과 상품 코드를 통해 입력받습니다.");
+        console.log("* 메뉴 사이에는 엔터(개행)를 입력해 주세요.");
+        console.log("* 'Done'을 입력 시 주문을 종료합니다.\n");
+    }
+    
+    checkDone(inputData: string) {
+        return inputData.toLowerCase() === "done";
+    }
+
+    checkFalse(inputData: string) {
+        return inputData.toLowerCase() === "false";
+    }
+
+    finishOrder() {
+        this.orders.confirmOrder();
+        rl.close();
+    }
 }
 
-function printMenu() {
-    console.log("---------- Menu ----------");
-    console.log("[pizza]");
-    for (let key in menus.pizzaName) {
-        console.log(`* ${key}(${menus.pizzaName[key].first}) : ${menus.pizzaName[key].second}`);
+class Order {
+    private userOrders: MenuType[] = [];
+    private totalPrice: number = 0;
+
+    requestOrder(inputOrder: MenuType) { 
+        this.userOrders.push(inputOrder);
+        this.totalPrice += inputOrder.price;
     }
-    console.log("[drink]");
-    for (let key in menus.drinkName) {
-        console.log(`* ${key}(${menus.drinkName[key].first}) : ${menus.drinkName[key].second}`);
+
+    confirmOrder() {
+        console.log("\n[주문을 확인합니다.]"); 
+
+        for (let order of this.userOrders) {
+            console.log(`* ${order.name}(${order.productCode}) : ${order.price}원`);
+            if (order.toppingsName.length > 0) {
+                console.log(`   ㄴ 추가한 토핑 : ${order.toppingsName}`);
+            }
+        }
+
+        console.log(`\n => 총 금액 : ${this.totalPrice}원`);
+        console.log("[주문을 종료합니다.]\n");
     }
 }
 
-function cheakUserInput(userInput : string) {
-    for (let key in menus) {
-        if (menus[key][userInput] !== undefined && /Name/.test(key)) {
-            return {name : userInput, productCode : menus[key][userInput].first, price : menus[key][userInput].second, topping : []};
-        } else if (menus[key][userInput] !== undefined) {
-            return {name : menus[key][userInput].first, productCode : userInput, price : menus[key][userInput].second, topping : []};
+class Menu {
+    private menus: MenuType[] = [
+        { name : "갈릭버터쉬림프", productCode : 10001, price : 29900, toppingsName : [] },
+        { name : "호박고구마", productCode : 10003, price : 22500, toppingsName : [] },
+        { name : "불고기", productCode : 10004, price : 22500, toppingsName : [] },
+        { name: "페페로니", productCode: 10005, price: 16900 , toppingsName : [] },
+        { name : "환타", productCode : 20003, price: 2000 , toppingsName : [] },
+        { name : "치즈", productCode : 30001, price : 500, toppingsName : [] },
+        { name : "수퍼슈프림", productCode : 10002, price : 28900, toppingsName : [] },
+        { name : "콜라", productCode : 20001, price : 1500, toppingsName : [] },
+        { name : "새우", productCode : 30002, price : 700, toppingsName : [] },
+        { name : "사이다", productCode : 20002, price : 1000, toppingsName : [] },
+        { name: "감자", productCode: 30003, price: 300 , toppingsName : [] }
+    ];
+    private mapMenuName = new Map<string, number>();
+    private mapMenuProductCode = new Map<number, number>();
+
+    constructor() {
+        this.menus.sort((a: MenuType, b: MenuType) => { 
+            return a.productCode - b.productCode;
+        });
+
+        for (let idx in this.menus) {
+            this.mapMenuName.set(this.menus[idx].name, parseInt(idx));
+            this.mapMenuProductCode.set(this.menus[idx].productCode, parseInt(idx));
         }
     }
 
-    return {name : "undefined", productCode : "undefined", price : 0};
-}  
+    printMenu() {
+        const category: string[] = ["[pizza]", "[drink]", "[topping]"];
+        let categoryIdx = 0;
 
-function confirmOrder(userOrderMenus : MenuType[]) {
-    console.log("\n[주문을 확인합니다.]"); 
+        console.log("---------- Menu ----------");
+        for (let idx in this.menus) {
+            if (idx === "0" || Math.floor(this.menus[idx].productCode / 10000) !== Math.floor(this.menus[parseInt(idx) - 1].productCode / 10000)) {
+                console.log(category[categoryIdx]);
+                categoryIdx++;
+            }
+            console.log(`* ${this.menus[idx].name}(${this.menus[idx].productCode}) : ${this.menus[idx].price}원`);
+        }
+    }
 
-    let totalPrice = userOrderMenus.reduce((sumPrice : number, orderMenu : MenuType) => {
-        console.log(`* ${orderMenu.name}(${orderMenu.productCode}) : ${orderMenu.price}원`);
-        return sumPrice + orderMenu.price;
-    }, 0);
+    findMenuType(orderArr: RegExpMatchArray) {
+        let menuData: MenuType = { name : "false", productCode : 0, price : 0, toppingsName : [] };
 
-    console.log(`\n => 총 금액 : ${totalPrice}원`);
-}
+        orderArr.forEach((order, i) => {
+            let idx: number | false = this.getMap(order);
+            
+            if ((i === 0 && idx !== false) && Math.floor(this.menus[idx].productCode / 10000) !== 3) {
+                menuData = { name: this.menus[idx].name, productCode: this.menus[idx].productCode, price: this.menus[idx].price, toppingsName : [] };
+            } else if ((Math.floor(menuData.productCode / 10000) === 1 && idx !== false) && Math.floor(this.menus[idx].productCode / 10000) === 3) {
+                menuData.toppingsName.push(this.menus[idx].name + "(" + this.menus[idx].productCode.toString() + ")");
+                menuData.price += this.menus[idx].price;
+            } else {
+                menuData.name = "false";
+                return menuData;
+            }
+        });
 
-function cheakUndefined(inputString : string) {
-    return inputString === "undefined";
-}
+        if (menuData.toppingsName.length > 0 && !this.checkSameTopping(menuData.toppingsName)) {
+            menuData.name = "false";
+        }
 
-function checkDone(userInput : string) {
-    return userInput.toLowerCase() === "done";
-}
+        return menuData;
+    }
 
-function inputGuidePrint(userInput : string) {
-    console.log(`['${userInput}'은 없는 메뉴입니다. 올바른 메뉴를 입력하셨는지 확인해 주세요!]`);
-    console.log("* 메뉴는 상품명과 상품 코드를 통해 입력받습니다.");
-    console.log("* 메뉴 사이에는 엔터(개행)를 입력해 주세요.");
-    console.log("* 'Done'을 입력 시 주문을 종료합니다.\n");
+    checkSameTopping(toppings : string[]) {
+        const uniqueArr = [...new Set(toppings)];
+        if (toppings.length === uniqueArr.length) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    getMap(order: string) {
+        const mapNameResult: number | undefined = this.mapMenuName.get(order);
+        const mapProductCodeResult: number | undefined = this.mapMenuProductCode.get(parseInt(order));
+        
+        if (mapNameResult !== undefined) {
+            return mapNameResult;
+        } else if (mapProductCodeResult !== undefined) {
+            return mapProductCodeResult;
+        } else {
+            return false;
+        }
+    }
 }
 
 export {
-    pizzaOrder,
-    finishOrder
+    TakeOrders
 }
