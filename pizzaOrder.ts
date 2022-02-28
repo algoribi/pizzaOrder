@@ -39,7 +39,7 @@ class TakeOrders {
                 if (reg === null) {
                     this.inputGuidePrint();
                 } else {
-                    const menuData: MenuType = this.menu.findMenuType(reg);
+                    const menuData: MenuType = this.menu.findMenu(reg); // 유저의 입력이 유효한 메뉴인지 검사
                     if (!this.checkFalse(menuData.name)) {
                         this.orders.requestOrder(menuData);
                     } else {
@@ -96,6 +96,7 @@ class Order {
 }
 
 class Menu {
+    // productCode의 첫 번째 자릿수의 값으로 메뉴의 카테고리(피자 : 1xxxx, 음료 : 2xxxx, 토핑 : 3xxxx)를 알 수 있다.
     private menus: MenuType[] = [
         { name : "갈릭버터쉬림프", productCode : 10001, price : 29900, toppingsName : [] },
         { name : "호박고구마", productCode : 10003, price : 22500, toppingsName : [] },
@@ -129,6 +130,7 @@ class Menu {
 
         console.log("---------- Menu ----------");
         for (let idx in this.menus) {
+            // 카테고리를 출력하기 위한 if문
             if (idx === "0" || Math.floor(this.menus[idx].productCode / 10000) !== Math.floor(this.menus[parseInt(idx) - 1].productCode / 10000)) {
                 console.log(category[categoryIdx]);
                 categoryIdx++;
@@ -137,7 +139,7 @@ class Menu {
         }
     }
 
-    findMenuType(orderArr: RegExpMatchArray) {
+    findMenu(orderArr: RegExpMatchArray) {
         let menuData: MenuType = { name : "false", productCode : 0, price : 0, toppingsName : [] };
 
         orderArr.forEach((order, i) => {
@@ -161,7 +163,7 @@ class Menu {
         return menuData;
     }
 
-    checkSameTopping(toppings : string[]) {
+    checkSameTopping(toppings : string[]) { // 중복되는 토핑이 입력으로 들어왔는지 검사
         const uniqueArr = [...new Set(toppings)];
         if (toppings.length === uniqueArr.length) {
             return true;
