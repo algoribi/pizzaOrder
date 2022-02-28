@@ -156,14 +156,14 @@ class Menu {
             }
         });
 
-        if (menuData.toppingsName.length > 0 && !this.checkSameTopping(menuData.toppingsName)) {
+        if (menuData.toppingsName.length > 0 && !this.checkSameTopping(menuData.toppingsName)) {  // 중복되는 토핑이 입력으로 들어왔는지 검사
             menuData.name = "false";
         }
 
         return menuData;
     }
 
-    checkSameTopping(toppings : string[]) { // 중복되는 토핑이 입력으로 들어왔는지 검사
+    checkSameTopping(toppings : string[]) {
         const uniqueArr = [...new Set(toppings)];
         if (toppings.length === uniqueArr.length) {
             return true;
