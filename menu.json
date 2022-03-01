@@ -1,0 +1,19 @@
+{
+    "pizza" : [
+        { "name" : "갈릭버터쉬림프", "productCode" : 10001, "price" : 29900},
+        { "name" : "수퍼슈프림", "productCode" : 10002, "price" : 28900},
+        { "name" : "호박고구마", "productCode" : 10003, "price" : 22500},
+        { "name" : "불고기", "productCode" : 10004, "price" : 22500},
+        { "name": "페페로니", "productCode": 10005, "price": 16900 }
+    ],
+    "drink" : [
+        { "name" : "콜라", "productCode" : 20001, "price" : 1500},
+        { "name" : "사이다", "productCode" : 20002, "price" : 1000},
+        { "name" : "환타", "productCode" : 20003, "price": 2000 }
+    ],
+    "topping" : [
+         { "name" : "치즈", "productCode" : 30001, "price" : 500},
+        { "name" : "새우", "productCode" : 30002, "price" : 700},
+        { "name": "감자", "productCode": 30003, "price": 300 }
+    ]
+}

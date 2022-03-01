@@ -1,5 +1,6 @@
 import * as readline from "readline";
 import * as utils from "util";
+import menuJson from './menu.json';
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -10,39 +11,29 @@ const question = utils.promisify<string, string>((query, callback) => {
     return rl.question(query, (answer: string) => callback(undefined, answer));
 }).bind(rl);
 
-interface MenuType {
-    name : string;
-    productCode : number;
-    price: number;
-    toppingsName : string[];
-}
-
 class TakeOrders {
-    private menu = new Menu();
     private orders = new Order();
 
     constructor() {
-        this.menu.printMenu();
-        console.log("\n['Done'을 입력할 때까지 주문을 받습니다.\n메뉴(이름 혹은 상품 코드)를 입력해 주세요.]");
     }
 
     async userInput() {
-        const regexr = /[가-힣|0-9]{1,}/g;
-
+        const regexr = /^[가-힣|0-9]{1,}$/;
+        const regexr2 = /^[가-힣|0-9]{1,}[(](\s*[가-힣|0-9]{1,}\s*,)*\s*[가-힣|0-9]{1,}\s*[)]$/;
+        
         while(true) {
             const userOrder: string = await question("> : ");
-
-            if (this.checkDone(userOrder)) {
+            
+            if ((!regexr.test(userOrder) && !regexr2.test(userOrder))) { 
+                this.inputGuidePrint();
+            } else if (this.checkDone(userOrder)) {
                 break;
             } else {
-                let reg = userOrder.match(regexr);
+                let reg = userOrder.match(/[가-힣|0-9]{1,}/g);
                 if (reg === null) {
                     this.inputGuidePrint();
                 } else {
-                    const menuData: MenuType = this.menu.findMenu(reg); // 유저의 입력이 유효한 메뉴인지 검사
-                    if (!this.checkFalse(menuData.name)) {
-                        this.orders.requestOrder(menuData);
-                    } else {
+                    if (!this.orders.addOrder(reg)) {
                         this.inputGuidePrint();
                     }
                 }
@@ -72,22 +63,87 @@ class TakeOrders {
 }
 
 class Order {
-    private userOrders: MenuType[] = [];
-    private totalPrice: number = 0;
+    userPizzaOrders: PizzaMenu[] = [];
+    userDrinkOrders: Menu[] = [];
+    totalPrice: number = 0;
 
-    requestOrder(inputOrder: MenuType) { 
-        this.userOrders.push(inputOrder);
-        this.totalPrice += inputOrder.price;
+    addOrder(userInput: RegExpMatchArray) {
+        let pizzaCategory: boolean = false;
+        let pizza = new PizzaMenu("", 0, 0);
+
+        for (let idx in userInput) {
+            if (idx === "0") {
+                let pizzaMenu = this.IsPizza(userInput[idx]);
+                let drinkMenu = this.IsDrink(userInput[idx]);
+                if (!this.IsNotFound(pizzaMenu.name)) {
+                    pizzaCategory = true;
+                    pizza = new PizzaMenu(pizzaMenu.name, pizzaMenu.productCode, pizzaMenu.price);
+                } else if (!this.IsNotFound(drinkMenu.name)) {
+                    this.userDrinkOrders.push(new Menu(drinkMenu.name, drinkMenu.productCode, drinkMenu.price));
+                } else {
+                    return false;
+                }
+            } else {
+                let toppingMenu = this.IsTopping(userInput[idx]);
+                if (!pizzaCategory || this.IsNotFound(toppingMenu.name) || !pizza.IsSameTopping(toppingMenu)) {
+                    return false;
+                } else {
+                    pizza.toppings.push(new Menu(toppingMenu.name, toppingMenu.productCode, toppingMenu.price));
+                    pizza.price += toppingMenu.price;
+                }
+            }
+        }
+
+        if (pizzaCategory) {
+            this.userPizzaOrders.push(pizza);
+            this.totalPrice += pizza.price;
+        } else {
+            this.totalPrice += this.userDrinkOrders[this.userDrinkOrders.length - 1].price;
+        }
+
+        return true;
     }
 
+    IsPizza(input: string) {
+        for (let pizza of menuJson.pizza) {
+            if (pizza.name === input || pizza.productCode.toString() === input) {
+                return pizza;
+            }
+        }
+        return { name: "not found", productCode: 0, price: 0 };
+    }
+    
+    IsDrink(input: string) {
+        for (let drink of menuJson.drink) {
+            if (drink.name === input || drink.productCode.toString() === input) {
+                return drink;
+            }
+        }
+        return { name: "not found", productCode: 0, price: 0 };
+    }
+    
+    IsTopping(input: string) {
+        for (let topping of menuJson.topping) {
+            if (topping.name === input || topping.productCode.toString() === input) {
+                return topping;
+            }
+        }
+        return { name: "not found", productCode: 0, price: 0 };
+    }
+    
+    IsNotFound(input: string) {
+        return input === "not found";
+    }
+    
     confirmOrder() {
         console.log("\n[주문을 확인합니다.]"); 
 
-        for (let order of this.userOrders) {
-            console.log(`* ${order.name}(${order.productCode}) : ${order.price}원`);
-            if (order.toppingsName.length > 0) {
-                console.log(`   ㄴ 추가한 토핑 : ${order.toppingsName}`);
-            }
+        for (let order of this.userPizzaOrders) {
+            order.printMenu();
+        }
+
+        for (let order of this.userDrinkOrders) {
+            order.printMenu();
         }
 
         console.log(`-----------------------------\n => 총 금액 : ${this.totalPrice}원`);
@@ -96,92 +152,45 @@ class Order {
 }
 
 class Menu {
-    // productCode의 첫 번째 자릿수의 값으로 메뉴의 카테고리(피자 : 1xxxx, 음료 : 2xxxx, 토핑 : 3xxxx)를 알 수 있다.
-    private menus: MenuType[] = [
-        { name : "갈릭버터쉬림프", productCode : 10001, price : 29900, toppingsName : [] },
-        { name : "호박고구마", productCode : 10003, price : 22500, toppingsName : [] },
-        { name : "불고기", productCode : 10004, price : 22500, toppingsName : [] },
-        { name: "페페로니", productCode: 10005, price: 16900 , toppingsName : [] },
-        { name : "환타", productCode : 20003, price: 2000 , toppingsName : [] },
-        { name : "치즈", productCode : 30001, price : 500, toppingsName : [] },
-        { name : "수퍼슈프림", productCode : 10002, price : 28900, toppingsName : [] },
-        { name : "콜라", productCode : 20001, price : 1500, toppingsName : [] },
-        { name : "새우", productCode : 30002, price : 700, toppingsName : [] },
-        { name : "사이다", productCode : 20002, price : 1000, toppingsName : [] },
-        { name: "감자", productCode: 30003, price: 300 , toppingsName : [] }
-    ];
-    private mapMenuName = new Map<string, number>();
-    private mapMenuProductCode = new Map<number, number>();
+    name : string;
+    productCode : number;
+    price: number;
 
-    constructor() {
-        this.menus.sort((a: MenuType, b: MenuType) => { 
-            return a.productCode - b.productCode;
-        });
+    constructor(name: string, productCode: number, price: number) {
+        this.name = name;
+        this.productCode = productCode;
+        this.price = price;
+    }
 
-        for (let idx in this.menus) {
-            this.mapMenuName.set(this.menus[idx].name, parseInt(idx));
-            this.mapMenuProductCode.set(this.menus[idx].productCode, parseInt(idx));
+    printMenu() { 
+        console.log(`* ${this.name}(${this.productCode}) : ${this.price}`);
+    }
+}
+
+class PizzaMenu extends Menu {
+    toppings: Menu[] = [];
+    
+    constructor(name: string, productCode: number, price: number) {
+        super(name, productCode, price);
+    }
+
+    IsSameTopping(topping : { name: string, productCode: number, price: number }) { 
+        for (let tp of this.toppings) {
+            if (tp.name === topping.name) {
+                return false;
+            }
         }
+        
+        return true;
     }
 
     printMenu() {
-        const category: string[] = ["[pizza]", "[drink]", "[topping]"];
-        let categoryIdx = 0;
-
-        console.log("---------- Menu ----------");
-        for (let idx in this.menus) {
-            // 카테고리를 출력하기 위한 if문
-            if (idx === "0" || Math.floor(this.menus[idx].productCode / 10000) !== Math.floor(this.menus[parseInt(idx) - 1].productCode / 10000)) {
-                console.log(category[categoryIdx]);
-                categoryIdx++;
+        console.log(`* ${this.name}(${this.productCode}) : ${this.price}`);
+        if (this.toppings.length !== 0) {
+            console.log(`   ㄴ 추가한 토핑 : `);
+            for (let topping of this.toppings) {
+                console.log(`   ${topping.name}(${topping.productCode})`);
             }
-            console.log(`* ${this.menus[idx].name}(${this.menus[idx].productCode}) : ${this.menus[idx].price}원`);
-        }
-    }
-
-    findMenu(orderArr: RegExpMatchArray) {
-        let menuData: MenuType = { name : "false", productCode : 0, price : 0, toppingsName : [] };
-
-        orderArr.forEach((order, i) => {
-            let idx: number | false = this.getMap(order);
-            
-            if ((i === 0 && idx !== false) && Math.floor(this.menus[idx].productCode / 10000) !== 3) {
-                menuData = { name: this.menus[idx].name, productCode: this.menus[idx].productCode, price: this.menus[idx].price, toppingsName : [] };
-            } else if ((Math.floor(menuData.productCode / 10000) === 1 && idx !== false) && Math.floor(this.menus[idx].productCode / 10000) === 3) {
-                menuData.toppingsName.push(this.menus[idx].name + "(" + this.menus[idx].productCode.toString() + ")");
-                menuData.price += this.menus[idx].price;
-            } else {
-                menuData.name = "false";
-                return menuData;
-            }
-        });
-
-        if (menuData.toppingsName.length > 0 && !this.checkSameTopping(menuData.toppingsName)) {  // 중복되는 토핑이 입력으로 들어왔는지 검사
-            menuData.name = "false";
-        }
-
-        return menuData;
-    }
-
-    checkSameTopping(toppings : string[]) {
-        const uniqueArr = [...new Set(toppings)];
-        if (toppings.length === uniqueArr.length) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    getMap(order: string) {
-        const mapNameResult: number | undefined = this.mapMenuName.get(order);
-        const mapProductCodeResult: number | undefined = this.mapMenuProductCode.get(parseInt(order));
-        
-        if (mapNameResult !== undefined) {
-            return mapNameResult;
-        } else if (mapProductCodeResult !== undefined) {
-            return mapProductCodeResult;
-        } else {
-            return false;
         }
     }
 }
