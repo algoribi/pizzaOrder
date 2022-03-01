@@ -2,7 +2,7 @@
   "name": "pizza",
   "version": "1.0.0",
   "description": "pizza order program.",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "tstart": "ts-node ./index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
